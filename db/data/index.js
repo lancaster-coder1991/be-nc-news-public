@@ -7,5 +7,5 @@ const databases = {
   test,
   development,
 };
-
+console.log(databases[ENV]);
 module.exports = databases[ENV];

@@ -1,19 +1,22 @@
-const {
-  topicsData,
-  articlesData,
-  commentsData,
-  usersData,
-} = require("../data/index.js");
+const { topics, articles, comments, users } = require("../data/index.js");
+
+const { referenceObj, replaceKeys } = require("../utils/data-manipulation");
 
 exports.seed = function (knex) {
   return knex
-    .insert(topicsData)
+    .insert(topics)
     .into("topics")
     .then(() => {
-      return knex.insert(usersData).into("users");
+      return knex.insert(users).into("users");
     })
     .then(() => {
-      return knex.insert(articlesData).into("articles");
+      console.log(articles);
+      return knex.insert(articles).into("articles").returning("*");
     })
-    .then((articles) => {});
+    .then((articles) => {
+      console.log(articles);
+      const refObj = referenceObj(articles, "title", "article_id");
+      const newComments = replaceKeys(comments, refObj);
+      return knex.insert(newComments).into("comments");
+    });
 };

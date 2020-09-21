@@ -1,27 +1,8 @@
-const { replaceKeys } = require("../db/utils/data-manipulation");
+const { replaceKeys, referenceObj } = require("../db/utils/data-manipulation");
 
-describe("Replace keys utils function", () => {
-  let changeArr;
+describe("referenceObj", () => {
   let compArr;
   beforeEach(() => {
-    changeArr = [
-      {
-        body:
-          "Oh, I've got compassion running out of my nose, pal! I'm the Sultan of Sentiment!",
-        belongs_to: "They're not exactly dogs, are they?",
-        created_by: "butter_bridge",
-        votes: 16,
-        created_at: 1511354163389,
-      },
-      {
-        body:
-          "The beautiful thing about treasure is that it exists. Got to find out what kind of sheets these are; not cotton, not rayon, silky.",
-        belongs_to: "Living in the shadow of a great man",
-        created_by: "butter_bridge",
-        votes: 14,
-        created_at: 1479818163389,
-      },
-    ];
     compArr = [
       {
         article_id: 1,
@@ -43,21 +24,87 @@ describe("Replace keys utils function", () => {
       },
     ];
   });
-  it("Should return an array of objects", () => {
-    expect(Array.isArray(replaceKeys(changeArr, compArr))).toBe(true);
-    expect(typeof replaceKeys(changeArr, compArr)[0]).toBe("object");
+
+  it("Returns an object", () => {
+    expect(typeof referenceObj(compArr, "title", "article_id")).toBe("object");
   });
-  it("Has added the keys of articleId and Author to the array objects, and has deleted the old keys", () => {
-    let result = replaceKeys(changeArr, compArr);
-    let keys = Object.keys(result[0]);
+  it("Returns an object with the correct key value pairs", () => {
+    const result = referenceObj(compArr, "title", "article_id");
+
+    expect(result).toEqual({
+      "Living in the shadow of a great man": 1,
+      "They're not exactly dogs, are they?": 2,
+    });
+  });
+});
+
+describe("replaceKeys", () => {
+  let changeArr;
+  let refObj;
+
+  beforeEach(() => {
+    changeArr = [
+      {
+        body:
+          "Oh, I've got compassion running out of my nose, pal! I'm the Sultan of Sentiment!",
+        belongs_to: "They're not exactly dogs, are they?",
+        created_by: "butter_bridge",
+        votes: 16,
+        created_at: 1511354163389,
+      },
+      {
+        body:
+          "The beautiful thing about treasure is that it exists. Got to find out what kind of sheets these are; not cotton, not rayon, silky.",
+        belongs_to: "Living in the shadow of a great man",
+        created_by: "butter_bridge",
+        votes: 14,
+        created_at: 1479818163389,
+      },
+    ];
+    refObj = {
+      "Living in the shadow of a great man": 1,
+      "They're not exactly dogs, are they?": 2,
+    };
+  });
+
+  it("Returns a new array and doesnt mutate the orginal array or objects", () => {
+    const result = replaceKeys(changeArr, refObj);
+    expect(changeArr).toEqual([
+      {
+        body:
+          "Oh, I've got compassion running out of my nose, pal! I'm the Sultan of Sentiment!",
+        belongs_to: "They're not exactly dogs, are they?",
+        created_by: "butter_bridge",
+        votes: 16,
+        created_at: 1511354163389,
+      },
+      {
+        body:
+          "The beautiful thing about treasure is that it exists. Got to find out what kind of sheets these are; not cotton, not rayon, silky.",
+        belongs_to: "Living in the shadow of a great man",
+        created_by: "butter_bridge",
+        votes: 14,
+        created_at: 1479818163389,
+      },
+    ]);
+    expect(result).not.toBe(changeArr);
+  });
+  it("Correctly updates the specified properties in each object", () => {
+    const result = replaceKeys(changeArr, refObj);
+    const keys = Object.keys(result[0]);
     expect(keys).toEqual(
       expect.arrayContaining([
-        "body",
-        "votes",
-        "created_at",
         "author",
         "article_id",
+        "votes",
+        "body",
+        "created_at",
       ])
     );
+  });
+  it("Assigns the correct id to the correct comment", () => {
+    const result = replaceKeys(changeArr, refObj);
+    expect(result[0].article_id).toBe(2);
+    expect(result[1].article_id).toBe(1);
   });
 });
