@@ -2,10 +2,18 @@
 
 const comments = require("../data/test-data/comments");
 
+exports.reformatDate = (arr) => {
+  const reformatted = arr.map((obj) => {
+    const newObj = { ...obj };
+    newObj.created_at = new Date(newObj.created_at);
+    return newObj;
+  });
+  return reformatted;
+};
+
 exports.referenceObj = (arr, property, value) => {
   const refObj = {};
   arr.forEach((element) => (refObj[element[property]] = element[value]));
-
   return refObj;
 };
 
