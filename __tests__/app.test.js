@@ -7,6 +7,9 @@ afterAll(() => {
 });
 
 describe("/api", () => {
+  it("GET request to invalid paths produce a 404", () => {
+    return request(app).get("/api/jopikz").expect(404);
+  });
   describe("/topics", () => {
     it("GET /topics should return with a 200", () => {
       return request(app).get("/api/topics/").expect(200);
