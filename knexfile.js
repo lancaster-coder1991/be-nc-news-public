@@ -14,13 +14,17 @@ const customConfig = {
   development: {
     connection: {
       database: "nc_news",
+      username: "george",
+      password: "georgescott123",
     },
   },
   test: {
     connection: {
       database: "nc_news_test",
+      username: "george",
+      password: "georgescott123",
     },
   },
 };
-console.log("env in knexfile", ENV);
+
 module.exports = { ...customConfig[ENV], ...baseConfig };

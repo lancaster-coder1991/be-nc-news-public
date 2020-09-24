@@ -32,3 +32,8 @@ exports.replaceKeys = (commentsArr, refObj) => {
     return newComment;
   });
 };
+
+exports.replaceCommentKeysNoObj = (body, keyToCreate, KeyToDelete) => {
+  body[keyToCreate] = body[KeyToDelete];
+  delete body[KeyToDelete];
+};
