@@ -11,6 +11,17 @@ describe("/api", () => {
     return request(app).get("/api/jopikz").expect(404);
   });
   describe("/topics", () => {
+    it("Returns a 405 when an invalid method is used", () => {
+      return Promise.all([
+        request(app).post("/api/topics").expect(405),
+        request(app).patch("/api/topics").expect(405),
+        request(app).delete("/api/topics").expect(405),
+      ]).then((results) => {
+        expect(
+          results.every((result) => result.body.msg === "Invalid method")
+        ).toBe(true);
+      });
+    });
     it("GET /topics should return a 200 and a topics object with an array", () => {
       return request(app)
         .get("/api/topics")
@@ -132,6 +143,15 @@ describe("/api", () => {
             ).toBe(true);
           });
       });
+      it("/articles should return a 400 if invalid queries or query values are passed", () => {
+        return Promise.all([
+          request(app).get("/api/articles?banana=mitch").expect(400),
+          request(app).get("/api/articles?sort_by=mitch").expect(400),
+        ]).then((results) => {
+          expect(results[0].body.msg).toBe("Invalid query or body");
+          expect(results[1].body.msg).toBe("Invalid query or body");
+        });
+      });
       it("/articles/:article_id should return a 200 and a single-object array with the correct article", () => {
         return request(app)
           .get("/api/articles/1")
@@ -164,7 +184,6 @@ describe("/api", () => {
           .get("/api/articles/1/comments")
           .expect(200)
           .then((res) => {
-            console.log(res.body.comments);
             expect(Array.isArray(res.body.comments)).toBe(true);
             const keys = [
               `author`,
@@ -185,7 +204,7 @@ describe("/api", () => {
             ).toEqual(true);
           });
       });
-      it("/articles/:article_id/comments should by sorted by created_at descending by default", () => {
+      it("/articles/:article_id/comments should be sorted by created_at descending by default", () => {
         return request(app)
           .get("/api/articles/1/comments")
           .expect(200)
@@ -255,10 +274,10 @@ describe("/api", () => {
       });
       it("/articles/:article_id should return a 400 bad request if an invalid id is passed", () => {
         return request(app)
-          .del("/api/articles/banana")
+          .delete("/api/articles/banana")
           .expect(400)
           .then((res) => {
-            expect(res.body.msg).toBe("Bad request");
+            expect(res.body.msg).toBe("Invalid parametric used");
           });
       });
     });
@@ -283,7 +302,7 @@ describe("/api", () => {
       it("/articles/:article_id should return a 404 if a valid id is passed but no article is found", () => {
         return request(app)
           .patch("/api/articles/1000000000")
-          .send({ votes: 5 })
+          .send({ inc_votes: 5 })
           .expect(404)
           .then((res) => {
             expect(res.body.msg).toBe("Article not found");
@@ -298,21 +317,22 @@ describe("/api", () => {
             expect(res.body.msg).toBe("Bad request");
           });
       });
-      it("/articles/:article_id should return a 200 and an unchanged object if a body with irrelevant properties is passed ", () => {
+      it("/articles/:article_id should return a 400 bad request if a body with irrelevant properties is passed ", () => {
         return request(app)
           .patch("/api/articles/3")
           .send({ boats: 5, Test: true })
-          .expect(200)
+          .expect(400)
           .then((res) => {
-            expect(res.body.article).toEqual({
-              article_id: 3,
-              title: "Eight pug gifs that remind me of mitch",
-              body: "some gifs",
-              votes: 5,
-              topic: "mitch",
-              author: "icellusedkars",
-              created_at: "2010-11-17T12:21:54.171Z",
-            });
+            expect(res.body.msg).toBe("Bad request");
+          });
+      });
+      it("/articles/:article_id should return a 400 Bad request if a valid id and object property are passed, but the property value is invalid", () => {
+        return request(app)
+          .patch("/api/articles/3")
+          .send({ votes: "banana" })
+          .expect(400)
+          .then((res) => {
+            expect(res.body.msg).toBe("Bad request");
           });
       });
     });
@@ -352,7 +372,7 @@ describe("/api", () => {
           .send({ user: "icellusedkars", face: "this is a test comment" })
           .expect(400)
           .then((res) => {
-            expect(res.body.msg).toBe("Invalid body");
+            expect(res.body.msg).toBe("Invalid query or body");
           });
       });
     });
@@ -375,8 +395,9 @@ describe("/api", () => {
         });
       });
     });
+    it("/comments/:comment_id should ", () => {});
     describe("DELETE", () => {
-      it.only("/comments/:comment_id should delete the specified comment and return no content", () => {
+      it("/comments/:comment_id should delete the specified comment and return no content", () => {
         return request(app)
           .del("/api/comments/1")
           .expect(204)

@@ -6,28 +6,49 @@ const {
 } = require("../db/utils/data-manipulation");
 
 exports.fetchArticles = (query) => {
-  console.group(query);
   return knex
-    .select(
-      "articles.article_id",
-      "articles.author",
-      "articles.title",
-      "articles.topic",
-      "articles.created_at",
-      "articles.votes"
-    )
+    .select("*")
     .from("articles")
-    .modify((queryBuilder) => {
-      if (query.author) queryBuilder.where("articles.author", query.author);
-      if (query.topic) queryBuilder.where("articles.topic", query.topic);
+    .returning("*")
+    .then((articles) => {
+      const columns = Object.keys(articles[0]);
+      const queries = Object.keys(query);
+      for (let i = 0; i < queries.length; i++) {
+        if (
+          !columns.includes(queries[i]) &&
+          queries[i] !== "sort_by" &&
+          queries[i] !== "order_by"
+        ) {
+          throw { status: 400, msg: "Invalid query or body" };
+        }
+      }
     })
-    .count("comments AS comment_count")
-    .leftJoin("comments", "comments.article_id", "articles.article_id")
-    .groupBy("articles.article_id")
-    .orderBy(query.sort_by || "created_at", query.order_by || "desc");
+    .then(() => {
+      return knex
+        .select(
+          "articles.article_id",
+          "articles.author",
+          "articles.title",
+          "articles.topic",
+          "articles.created_at",
+          "articles.votes"
+        )
+        .from("articles")
+        .modify((queryBuilder) => {
+          if (query.author) queryBuilder.where("articles.author", query.author);
+          if (query.topic) queryBuilder.where("articles.topic", query.topic);
+        })
+        .count("comments AS comment_count")
+        .leftJoin("comments", "comments.article_id", "articles.article_id")
+        .groupBy("articles.article_id")
+        .orderBy(query.sort_by || "created_at", query.order_by || "desc");
+    });
 };
 
 exports.fetchArticlesById = (article_id) => {
+  if (!Number(article_id)) {
+    return Promise.reject({ status: 400, msg: "Bad request" });
+  }
   return knex
     .select(
       "articles.article_id",
@@ -51,10 +72,12 @@ exports.fetchArticlesById = (article_id) => {
 };
 
 exports.removeArticleById = (article_id) => {
+  console.log(article_id);
   return Promise.all([
     knex.select("*").from("articles").where({ article_id }),
     knex.del().from("articles").where({ article_id }),
   ]).then((promises) => {
+    console.log(promises[0][0]);
     if (!promises[0][0]) {
       return Promise.reject({ status: 404, msg: "Article not found" });
     }
@@ -68,6 +91,10 @@ exports.removeArticleById = (article_id) => {
 };
 
 exports.updateArticleById = (article_id, body) => {
+  let keys = Object.keys(body);
+  if (keys.length > 1 || !keys.length || !Number(body.inc_votes)) {
+    return Promise.reject({ status: 400, msg: "Bad request" });
+  }
   return knex
     .increment("votes", body.inc_votes || 0)
     .from("articles")
@@ -81,6 +108,9 @@ exports.updateArticleById = (article_id, body) => {
 };
 
 exports.createCommentById = (article_id, body) => {
+  if (!Number(article_id)) {
+    return Promise.reject({ status: 400, msg: "Bad request" });
+  }
   return knex
     .select("*")
     .from("articles")
