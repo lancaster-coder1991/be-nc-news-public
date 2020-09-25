@@ -1,10 +1,10 @@
 {
   "name": "be-nc-news",
-  "start": "node listen.js",
   "version": "1.0.0",
   "description": "bc-nc-news",
   "main": "index.js",
   "scripts": {
+    "start": "node listen.js",
     "setup-dbs": "psql -f ./db/setup.sql",
     "seed-dev": "psql -f ./db/setup.sql && knex migrate:rollback && knex migrate:latest && knex seed:run",
     "seed-test": "NODE_ENV='test' knex seed:run",
