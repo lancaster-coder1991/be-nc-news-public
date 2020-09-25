@@ -51,14 +51,96 @@ describe("/api", () => {
   });
   describe("/articles", () => {
     describe("GET", () => {
+      it("/articles responds with an array of article objects that include a comment count for each article", () => {
+        return request(app)
+          .get("/api/articles")
+          .expect(200)
+          .then((res) => {
+            const keys = [
+              `author`,
+              `title`,
+              `article_id`,
+              `topic`,
+              `created_at`,
+              `votes`,
+              "comment_count",
+            ];
+            expect(
+              res.body.articles.every((article) => {
+                let bool = true;
+                Object.keys(article).forEach((key) => {
+                  if (!keys.includes(key)) bool = false;
+                });
+                return bool;
+              })
+            );
+          });
+      });
+      it("/articles should accept a sort_by query which defaults to created_at", () => {
+        return request(app)
+          .get("/api/articles")
+          .expect(200)
+          .then((res) => {
+            expect(res.body.articles).toBeSortedBy("created_at", {
+              descending: true,
+            });
+            return request(app)
+              .get("/api/articles?sort_by=votes")
+              .expect(200)
+              .then((res) => {
+                expect(res.body.articles).toBeSortedBy("votes", {
+                  descending: true,
+                });
+              });
+          });
+      });
+      it("/articles should accept an order_by query which defaults to descending", () => {
+        return request(app)
+          .get("/api/articles")
+          .expect(200)
+          .then((res) => {
+            expect(res.body.articles).toBeSortedBy("created_at", {
+              descending: true,
+            });
+            return request(app).get(
+              "/api/articles?sort_by=votes&&order_by=asc",
+              {
+                ascending: true,
+              }
+            );
+          });
+      });
+      it("/articles should accept an author query, that filters to only authors we are interested in", () => {
+        return request(app)
+          .get("/api/articles?author=icellusedkars")
+          .expect(200)
+          .then((res) => {
+            expect(
+              res.body.articles.every(
+                (article) => article.author === "icellusedkars"
+              )
+            ).toBe(true);
+          });
+      });
+      it("/articles should accept an author query, that filters to only authors we are interested in", () => {
+        return request(app)
+          .get("/api/articles?topic=mitch")
+          .expect(200)
+          .then((res) => {
+            expect(
+              res.body.articles.every((article) => article.topic === "mitch")
+            ).toBe(true);
+          });
+      });
       it("/articles/:article_id should return a 200 and a single-object array with the correct article", () => {
         return request(app)
-          .get("/api/articles/3")
+          .get("/api/articles/1")
           .expect(200)
           .then((res) => {
             expect(Array.isArray(res.body.article)).toBe(true);
             expect(res.body.article.length).toBe(1);
-            expect(res.body.article[0].article_id).toBe(3);
+            expect(res.body.article[0].article_id).toBe(1);
+            expect(res.body.article[0].comment_count).toBe("13");
           });
       });
       it("/articles/:article_id should return a 404 if a valid id is passed but no article is found", () => {
@@ -79,15 +161,16 @@ describe("/api", () => {
       });
       it("/articles/:article_id/comments should return a 200 and an array of comments with the correct properties", () => {
         return request(app)
-          .get("/api/articles/3/comments")
+          .get("/api/articles/1/comments")
           .expect(200)
           .then((res) => {
+            console.log(res.body.comments);
             expect(Array.isArray(res.body.comments)).toBe(true);
-            let keys = [
+            const keys = [
               `author`,
-              `title`,
+              `comment_id`,
               `article_id`,
-              `topic`,
+              `body`,
               `created_at`,
               `votes`,
             ];
@@ -100,6 +183,46 @@ describe("/api", () => {
                 return bool;
               })
             ).toEqual(true);
+          });
+      });
+      it("/articles/:article_id/comments should by sorted by created_at descending by default", () => {
+        return request(app)
+          .get("/api/articles/1/comments")
+          .expect(200)
+          .then((res) => {
+            expect(res.body.comments).toBeSortedBy("created_at", {
+              descending: true,
+            });
+          });
+      });
+      it("/articles/:article_id/comments should accept a sort_by query", () => {
+        return request(app)
+          .get("/api/articles/1/comments?sort_by=author")
+          .expect(200)
+          .then((res) => {
+            expect(res.body.comments).toBeSortedBy("author", {
+              descending: true,
+            });
+          });
+      });
+      it("/articles/:article_id/comments should accept an order_by query", () => {
+        return request(app)
+          .get("/api/articles/1/comments?order_by=asc")
+          .expect(200)
+          .then((res) => {
+            expect(res.body.comments).toBeSortedBy("created_at", {
+              ascending: true,
+            });
+          });
+      });
+      it("/articles/:article_id/comments should be able to use its two valid queries together", () => {
+        return request(app)
+          .get("/api/articles/1/comments?sort_by=author&order_by=asc")
+          .expect(200)
+          .then((res) => {
+            expect(res.body.comments).toBeSortedBy("author", {
+              ascending: true,
+            });
           });
       });
     });
@@ -144,7 +267,7 @@ describe("/api", () => {
         return request(app)
           .patch("/api/articles/3")
           .expect(200)
-          .send({ votes: 5 })
+          .send({ inc_votes: 5 })
           .then((res) => {
             expect(res.body.article).toEqual({
               article_id: 3,
@@ -175,13 +298,21 @@ describe("/api", () => {
             expect(res.body.msg).toBe("Bad request");
           });
       });
-      it.only("/articles/:article_id should return a 400 bad request if a an incorrect body is passed ", () => {
+      it("/articles/:article_id should return a 200 and an unchanged object if a body with irrelevant properties is passed ", () => {
         return request(app)
           .patch("/api/articles/3")
           .send({ boats: 5, Test: true })
-          .expect(400)
+          .expect(200)
           .then((res) => {
-            expect(res.body.msg).toBe("Invalid body");
+            expect(res.body.article).toEqual({
+              article_id: 3,
+              title: "Eight pug gifs that remind me of mitch",
+              body: "some gifs",
+              votes: 5,
+              topic: "mitch",
+              author: "icellusedkars",
+              created_at: "2010-11-17T12:21:54.171Z",
+            });
           });
       });
     });
@@ -215,6 +346,50 @@ describe("/api", () => {
             expect(res.body.msg).toBe("Bad request");
           });
       });
+      it("/articles/:article_id/comments should return a 400 invalid body message if an invalid body is passed", () => {
+        return request(app)
+          .post("/api/articles/3/comments")
+          .send({ user: "icellusedkars", face: "this is a test comment" })
+          .expect(400)
+          .then((res) => {
+            expect(res.body.msg).toBe("Invalid body");
+          });
+      });
+    });
+  });
+  describe("/comments", () => {
+    describe("PATCH", () => {
+      it("/comments/:comment_id should accept a query body that updates the votes property of the specified comment by 1 or -1", () => {
+        return Promise.all([
+          request(app)
+            .patch("/api/comments/1")
+            .send({ inc_votes: 1 })
+            .expect(200),
+          request(app)
+            .patch("/api/comments/1")
+            .send({ inc_votes: -2 })
+            .expect(200),
+        ]).then((results) => {
+          expect(results[0].body.comment.votes).toBe(17);
+          expect(results[1].body.comment.votes).toBe(15);
+        });
+      });
+    });
+    describe("DELETE", () => {
+      it.only("/comments/:comment_id should delete the specified comment and return no content", () => {
+        return request(app)
+          .del("/api/comments/1")
+          .expect(204)
+          .then((res) => {
+            expect(res.body).toEqual({});
+          });
+      });
     });
   });
 });
+
+/*errors to code:
+
+invalid query values for /articles GET query tests - e.g. sort by banana
+invalid query properties for /articles GET query tests - e.g. banana=yellow 
+everything form line 264 of the readme*/

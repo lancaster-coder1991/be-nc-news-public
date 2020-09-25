@@ -5,11 +5,44 @@ const {
   replaceCommentKeysNoObj,
 } = require("../db/utils/data-manipulation");
 
+exports.fetchArticles = (query) => {
+  console.group(query);
+  return knex
+    .select(
+      "articles.article_id",
+      "articles.author",
+      "articles.title",
+      "articles.topic",
+      "articles.created_at",
+      "articles.votes"
+    )
+    .from("articles")
+    .modify((queryBuilder) => {
+      if (query.author) queryBuilder.where("articles.author", query.author);
+      if (query.topic) queryBuilder.where("articles.topic", query.topic);
+    })
+    .count("comments AS comment_count")
+    .leftJoin("comments", "comments.article_id", "articles.article_id")
+    .groupBy("articles.article_id")
+    .orderBy(query.sort_by || "created_at", query.order_by || "desc");
+};
+
 exports.fetchArticlesById = (article_id) => {
   return knex
-    .select("*")
+    .select(
+      "articles.article_id",
+      "articles.author",
+      "articles.title",
+      "articles.body",
+      "articles.topic",
+      "articles.created_at",
+      "articles.votes"
+    )
     .from("articles")
-    .where({ article_id })
+    .where("articles.article_id", article_id)
+    .count("comments AS comment_count")
+    .leftJoin("comments", "comments.article_id", "articles.article_id")
+    .groupBy("articles.article_id")
     .then((article) => {
       if (!article.length)
         return Promise.reject({ status: 404, msg: "Article not found" });
@@ -36,7 +69,7 @@ exports.removeArticleById = (article_id) => {
 
 exports.updateArticleById = (article_id, body) => {
   return knex
-    .increment(body)
+    .increment("votes", body.inc_votes || 0)
     .from("articles")
     .where({ article_id })
     .returning("*")
@@ -67,6 +100,10 @@ exports.createCommentById = (article_id, body) => {
     });
 };
 
-exports.fetchCommentsById = (article_id) => {
-  return knex.select("*").from("comments").where({ article_id });
+exports.fetchCommentsById = (article_id, query) => {
+  return knex
+    .select("*")
+    .from("comments")
+    .where({ article_id })
+    .orderBy(query.sort_by || "created_at", query.order_by || "desc");
 };

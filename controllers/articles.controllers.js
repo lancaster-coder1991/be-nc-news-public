@@ -1,10 +1,17 @@
 const {
+  fetchArticles,
   fetchArticlesById,
   removeArticleById,
   updateArticleById,
   createCommentById,
   fetchCommentsById,
 } = require("../models/articles.models.js");
+
+exports.getArticles = (req, res, next) => {
+  fetchArticles(req.query).then((articles) => {
+    res.status(200).send({ articles });
+  });
+};
 
 exports.getArticleById = (req, res, next) => {
   const id = req.params.article_id;
@@ -37,7 +44,6 @@ exports.patchArticleById = (req, res, next) => {
       res.status(200).send({ article });
     })
     .catch((err) => {
-      console.log(err);
       next(err);
     });
 };
@@ -55,7 +61,8 @@ exports.postCommentById = (req, res, next) => {
 
 exports.getCommentsById = (req, res, next) => {
   let id = req.params.article_id;
-  fetchCommentsById(id).then((comments) => {
+  let query = req.query;
+  fetchCommentsById(id, query).then((comments) => {
     res.status(200).send({ comments });
   });
 };

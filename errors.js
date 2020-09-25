@@ -1,7 +1,14 @@
 exports.handle400s = (err, req, res, next) => {
   console.log("handle400s being called");
   if (err.code === "42703" || err.code === "22P02") {
-    res.status(400).send({ msg: "Bad request" });
+    if (
+      err.routine === "errorMissingColumn" ||
+      err.routine === "checkInsertTargets"
+    ) {
+      res.status(400).send({ msg: "Invalid body" });
+    } else {
+      res.status(400).send({ msg: "Bad request" });
+    }
   } else {
     next(err);
   }
@@ -9,10 +16,8 @@ exports.handle400s = (err, req, res, next) => {
 
 exports.handleParam404s = (err, req, res, next) => {
   console.log("handleParam404s being called");
-  if (err.msg === "User not found") {
-    res.status(404).send({ msg: "User not found" });
-  } else if (err.msg === "Article not found") {
-    res.status(404).send({ msg: "Article not found" });
+  if (err.status === 404) {
+    res.status(err.status).send({ msg: err.msg });
   } else {
     next(err);
   }
@@ -24,7 +29,6 @@ exports.handle404s = (req, res, next) => {
 };
 
 exports.handle500s = (err, req, res, next) => {
-  console.log("handle500s being called");
   console.log("Reached 500 with err:", err);
   res.status(500).send({ msg: "Server error" });
 };
