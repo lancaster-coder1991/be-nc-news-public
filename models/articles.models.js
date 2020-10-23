@@ -137,5 +137,8 @@ exports.fetchCommentsById = (article_id, query) => {
     .select("*")
     .from("comments")
     .where({ article_id })
+    .modify((queryBuilder) => {
+      if (query.p) queryBuilder.limit(5).offset(5 * (Number(query.p) - 1));
+    })
     .orderBy(query.sort_by || "created_at", query.order_by || "desc");
 };

@@ -253,6 +253,14 @@ describe("/api", () => {
           });
       });
     });
+    it("/articles/:article_id/comments should accept a pagination query", () => {
+      return request(app)
+        .get("/api/articles/1/comments?p=2")
+        .expect(200)
+        .then((res) => {
+          expect(res.body.comments.length).toBe(5);
+        });
+    });
     describe("DELETE", () => {
       it("/articles/:article_id should return the number of deleted rows and the deleted article", () => {
         return request(app)
