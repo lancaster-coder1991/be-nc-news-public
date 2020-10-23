@@ -5,6 +5,10 @@ exports.updateCommentById = (comment_id, body) => {
     .increment("votes", body.inc_votes || 0)
     .from("comments")
     .where({ comment_id })
+    .modify((queryBuilder) => {
+      if (body.inc_votes) queryBuilder.increment("votes", body.inc_votes || 0);
+      if (body.body) queryBuilder.update("body", body.body);
+    })
     .returning("*")
     .then(([updatedComment]) => {
       if (!updatedComment)

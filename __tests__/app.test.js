@@ -411,6 +411,15 @@ describe("/api", () => {
         });
       });
     });
+    it("/comments/:comment_id should accept a query body with a new body, which allows for updating of the comment content", () => {
+      return request(app)
+        .patch("/api/comments/1")
+        .send({ body: "this is a new comment body" })
+        .expect(200)
+        .then((res) => {
+          expect(res.body.comment.body).toBe("this is a new comment body");
+        });
+    });
     it("/comments/:comment_id should ", () => {});
     describe("DELETE", () => {
       it("/comments/:comment_id should delete the specified comment and return no content", () => {
