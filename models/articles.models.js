@@ -17,7 +17,8 @@ exports.fetchArticles = (query) => {
         if (
           !columns.includes(queries[i]) &&
           queries[i] !== "sort_by" &&
-          queries[i] !== "order_by"
+          queries[i] !== "order_by" &&
+          queries[i] !== "p"
         ) {
           throw { status: 400, msg: "Invalid query or body" };
         }
@@ -37,6 +38,7 @@ exports.fetchArticles = (query) => {
         .modify((queryBuilder) => {
           if (query.author) queryBuilder.where("articles.author", query.author);
           if (query.topic) queryBuilder.where("articles.topic", query.topic);
+          if (query.p) queryBuilder.limit(5).offset(5 * (Number(query.p) - 1));
         })
         .count("comments AS comment_count")
         .leftJoin("comments", "comments.article_id", "articles.article_id")

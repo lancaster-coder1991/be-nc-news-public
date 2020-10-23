@@ -143,6 +143,14 @@ describe("/api", () => {
             ).toBe(true);
           });
       });
+      it("/articles should accept a pagination query that defaults to a limit of 5 articles in the response", () => {
+        return request(app)
+          .get("/api/articles?p=2")
+          .expect(200)
+          .then((res) => {
+            expect(res.body.articles.length).toBe(5);
+          });
+      });
       it("/articles should return a 400 if invalid queries or query values are passed", () => {
         return Promise.all([
           request(app).get("/api/articles?banana=mitch").expect(400),
